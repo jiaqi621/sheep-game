@@ -218,8 +218,8 @@
         <div class="victory-modal" id="victoryModal">
             <div class="modal-content">
                 <h2 class="victory-title">恭喜通关！</h2>
-                <p class="victory-text">你愿意成为郭家齐的妻子吗！</p>
-                <button class="restart-btn" id="restartBtn">正在播放爱的语音～>zheng za
+                <p class="victory-text">所以你愿意嫁给我吗！</p>
+                <button class="restart-btn" id="restartBtn">正在播放语音，请勿退出</button>
             </div>
         </div>
 
@@ -261,7 +261,8 @@
             cardsPerLayer: 21,      // 每层卡片数量（21是3的倍数，总卡片数=21×1=21）
             slotCount: 7,           // 收集槽数量
             matchCount: 3,          // 消除所需相同卡片数
-            victoryAudioUrl: "https://jiaqi621.github.io/sheep-game/qiuhun.m4a" 
+            victoryAudioUrl: "https://jiaqi621.github.io/sheep-game/qiuhun.m4a",
+            cardSpacing: 5         // 卡片间距（越大越分散）
         };
 
         // 游戏状态
@@ -286,7 +287,7 @@
             document.getElementById("victoryModal").style.display = "none";
             document.getElementById("failModal").style.display = "none";
 
-            // 生成堆叠卡片数据（保证数量为3的倍数）
+            // 生成分散排布的卡片数据
             generateStackedCards();
             
             // 渲染卡片
@@ -296,13 +297,14 @@
             bindEvents();
         }
 
-        // 生成堆叠卡片数据（核心修复：保证每种卡片数和总卡片数都是3的倍数）
+        // 生成分散排布的卡片数据（核心优化：减少堆叠，增加间距）
         function generateStackedCards() {
             const cardArea = document.getElementById("cardArea");
             const areaWidth = cardArea.clientWidth - 100;  // 卡片区域宽度（留边距）
             const areaHeight = cardArea.clientHeight - 100; // 卡片区域高度（留边距）
             const cardWidth = 80;
             const cardHeight = 105;
+            const spacing = GAME_CONFIG.cardSpacing; // 卡片间距
 
             let cardId = 0;
             const allCards = [];
@@ -311,39 +313,56 @@
             
             // 关键计算：每种卡片的基础数量（必须是3的倍数）
             const baseCountPerType = Math.floor(totalCards / cardTypes);
-            // 修正为最接近的3的倍数
             const countPerType = Math.floor(baseCountPerType / 3) * 3;
-            // 补充剩余卡片数（确保总数是3的倍数）
             let remainingCards = totalCards - (countPerType * cardTypes);
             
-            // 生成每种类型的卡片（先按基础数量生成）
+            // 计算网格行列数（让卡片按网格分布，减少重叠）
+            const colCount = Math.floor(areaWidth / (cardWidth + spacing));
+            const rowCount = Math.floor(areaHeight / (cardHeight + spacing));
+            // 生成网格坐标池
+            const gridPositions = [];
+            for (let r = 0; r < rowCount; r++) {
+                for (let c = 0; c < colCount; c++) {
+                    const x = 50 + c * (cardWidth + spacing);
+                    const y = 50 + r * (cardHeight + spacing);
+                    gridPositions.push({x, y});
+                }
+            }
+
+            // 生成每种类型的卡片
             for (let type = 0; type < cardTypes; type++) {
-                // 当前类型要生成的数量（基础数 + 补充数，保证是3的倍数）
                 let currentTypeCount = countPerType;
                 if (remainingCards > 0) {
-                    // 补充数只能加3（保证仍是3的倍数）
                     const addCount = Math.min(3, remainingCards);
                     currentTypeCount += addCount;
                     remainingCards -= addCount;
                 }
 
-                // 为当前类型生成指定数量的卡片（每层分布）
                 for (let layer = 0; layer < GAME_CONFIG.totalLayers; layer++) {
-                    // 每层分配的数量（平均分配）
                     const countInLayer = Math.floor(currentTypeCount / GAME_CONFIG.totalLayers);
                     for (let i = 0; i < countInLayer; i++) {
-                        // 随机位置（带重叠偏移）
-                        const x = 50 + Math.random() * (areaWidth - cardWidth);
-                        const y = 50 + Math.random() * (areaHeight - cardHeight);
-                        // 层叠z-index（上层更高）
-                        const zIndex = layer * 10 + Math.floor(Math.random() * 10);
+                        // 优先从网格取坐标，无网格则随机（保证分散）
+                        let pos;
+                        if (gridPositions.length > 0) {
+                            const posIndex = Math.floor(Math.random() * gridPositions.length);
+                            pos = gridPositions.splice(posIndex, 1)[0];
+                        } else {
+                            // 随机坐标也限制偏移范围，减少重叠
+                            pos = {
+                                x: 50 + Math.random() * (areaWidth - cardWidth - 20),
+                                y: 50 + Math.random() * (areaHeight - cardHeight - 20)
+                            };
+                        }
+                        
+                        // 层叠z-index降低（减少遮挡），同层z-index差异小
+                        const zIndex = layer * 5 + Math.floor(Math.random() * 3);
                         
                         allCards.push({
                             id: `card-${cardId++}`,
                             type: type,
                             image: cardImages[type],
-                            x: x,
-                            y: y,
+                            x: pos.x,
+                            y: pos.y,
                             zIndex: zIndex,
                             isVisible: true,
                             layer: layer
@@ -352,23 +371,26 @@
                 }
             }
 
-            // 最终校验：确保总数是3的倍数（兜底）
+            // 兜底校验：确保总数是3的倍数
             const finalTotal = allCards.length;
             if (finalTotal % 3 !== 0) {
-                // 如果总数不是3的倍数，补充到最近的3的倍数
                 const needAdd = 3 - (finalTotal % 3);
                 for (let i = 0; i < needAdd; i++) {
                     const type = Math.floor(Math.random() * cardTypes);
-                    const x = 50 + Math.random() * (areaWidth - cardWidth);
-                    const y = 50 + Math.random() * (areaHeight - cardHeight);
-                    const zIndex = Math.floor(Math.random() * 10);
+                    const pos = gridPositions.length > 0 
+                        ? gridPositions[Math.floor(Math.random() * gridPositions.length)]
+                        : {
+                            x: 50 + Math.random() * (areaWidth - cardWidth - 20),
+                            y: 50 + Math.random() * (areaHeight - cardHeight - 20)
+                          };
+                    const zIndex = Math.floor(Math.random() * 3);
                     
                     allCards.push({
                         id: `card-${cardId++}`,
                         type: type,
                         image: cardImages[type],
-                        x: x,
-                        y: y,
+                        x: pos.x,
+                        y: pos.y,
                         zIndex: zIndex,
                         isVisible: true,
                         layer: 0
@@ -376,21 +398,20 @@
                 }
             }
 
-            // 打乱卡片顺序（保证堆叠随机性）
+            // 打乱卡片顺序
             const shuffledCards = shuffleArray(allCards);
             
             // 更新游戏状态
             gameState.cards = shuffledCards;
             gameState.remainingCards = shuffledCards.length;
             
-            // 控制台打印校验（可选，方便调试）
+            // 控制台调试信息
             console.log("总卡片数：", gameState.remainingCards, "（是否3的倍数：", gameState.remainingCards % 3 === 0, "）");
-            // 统计每种卡片数量
             const typeCount = {};
             shuffledCards.forEach(card => {
                 typeCount[card.type] = (typeCount[card.type] || 0) + 1;
             });
-            console.log("各类型卡片数量（均为3的倍数）：", typeCount);
+            console.log("各类型卡片数量：", typeCount);
         }
 
         // 渲染堆叠卡片
@@ -557,7 +578,7 @@
             const modal = document.getElementById("victoryModal");
             modal.style.display = "flex";
             
-            // 播放胜利语音（优化兼容性）
+            // 播放胜利语音
             playVictoryAudio();
         }
 
@@ -567,18 +588,15 @@
             modal.style.display = "flex";
         }
 
-        // 播放胜利语音（优化移动端兼容性）
+        // 播放胜利语音（优化兼容性）
         function playVictoryAudio() {
             if (GAME_CONFIG.victoryAudioUrl) {
                 try {
-                    // 创建音频对象并设置自动播放属性
                     const audio = new Audio(GAME_CONFIG.victoryAudioUrl);
                     audio.autoplay = true;
                     audio.controls = false;
-                    // 兼容移动端用户交互限制
                     audio.play().catch(err => {
                         console.log("语音播放失败:", err);
-                        // 提示用户手动触发播放
                         const modalContent = document.querySelector(".modal-content");
                         const audioBtn = document.createElement("button");
                         audioBtn.className = "restart-btn";
