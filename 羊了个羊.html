@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>郭了个王</title>
     <style>
         * {
@@ -17,38 +17,41 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
+            padding: 10px; /* 移动端减少内边距 */
             min-height: 100vh;
+            touch-action: manipulation; /* 优化移动端点击 */
         }
 
         .game-container {
-            max-width: 900px;
             width: 100%;
+            max-width: 900px;
+            padding: 0 5px;
         }
 
         .game-title {
             text-align: center;
-            font-size: 28px;
+            font-size: clamp(20px, 5vw, 28px); /* 响应式字体 */
             color: #8b5a2b;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
-        /* 卡片区域样式 - 相对定位用于堆叠 */
+        /* 卡片区域 - 适配移动端尺寸 */
         .card-area {
             position: relative;
             background-color: #d9c8b4;
-            padding: 30px;
+            padding: 15px; /* 移动端减少内边距 */
             border-radius: 10px;
-            margin-bottom: 20px;
-            min-height: 600px;
+            margin-bottom: 15px;
+            min-height: clamp(350px, 70vh, 600px); /* 按视口高度适配 */
             overflow: hidden;
+            width: 100%;
         }
 
-        /* 卡片样式 - 绝对定位实现堆叠 */
+        /* 卡片样式 - 移动端自适应尺寸 */
         .card {
             position: absolute;
-            width: 80px;
-            height: 105px;
+            width: clamp(50px, 18vw, 80px); /* 移动端最小50px，最大80px */
+            height: clamp(65px, 24vw, 105px); /* 宽高比保持3:4 */
             background-color: white;
             border-radius: 8px;
             cursor: pointer;
@@ -58,6 +61,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             user-select: none;
             z-index: 1;
+            touch-action: manipulation; /* 防止移动端双击缩放 */
         }
 
         .card:hover {
@@ -73,21 +77,22 @@
             transition: opacity 0.3s, transform 0.2s;
         }
 
-        /* 收集槽样式 */
+        /* 收集槽 - 移动端适配 */
         .collect-slot {
             display: flex;
-            gap: 10px;
-            padding: 15px;
+            gap: 8px; /* 移动端减小间距 */
+            padding: 10px;
             background-color: #e8d9c3;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             justify-content: center;
             flex-wrap: wrap;
+            width: 100%;
         }
 
         .slot {
-            width: 70px;
-            height: 90px;
+            width: clamp(45px, 16vw, 70px);
+            height: clamp(60px, 21vw, 90px);
             background-color: white;
             border-radius: 5px;
             display: flex;
@@ -98,7 +103,7 @@
             box-shadow: inset 0 0 3px rgba(0,0,0,0.2);
         }
 
-        /* 胜利弹窗样式 */
+        /* 胜利/失败弹窗 - 移动端优化 */
         .victory-modal {
             position: fixed;
             top: 0;
@@ -110,89 +115,45 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
+            padding: 20px;
         }
 
         .modal-content {
             background-color: white;
-            padding: 40px;
+            padding: 25px 15px;
             border-radius: 15px;
             text-align: center;
             max-width: 500px;
-            width: 90%;
+            width: 100%;
         }
 
         .victory-title {
-            font-size: 36px;
+            font-size: clamp(24px, 6vw, 36px);
             color: #8b5a2b;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .victory-text {
-            font-size: 18px;
-            margin-bottom: 30px;
+            font-size: clamp(16px, 3vw, 18px);
+            margin-bottom: 25px;
             color: #555;
+            padding: 0 10px;
         }
 
         .restart-btn {
-            padding: 12px 30px;
+            padding: 10px 25px;
             background-color: #8b5a2b;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: clamp(14px, 3vw, 16px);
             cursor: pointer;
             transition: background-color 0.2s;
+            width: clamp(150px, 50vw, 250px);
         }
 
         .restart-btn:hover {
             background-color: #6d4421;
-        }
-
-        /* 游戏失败弹窗 */
-        .fail-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        /* 响应式适配 */
-        @media (max-width: 768px) {
-            .card {
-                width: 70px;
-                height: 90px;
-            }
-            
-            .slot {
-                width: 60px;
-                height: 80px;
-            }
-            
-            .card-area {
-                min-height: 500px;
-                padding: 20px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .card {
-                width: 60px;
-                height: 80px;
-            }
-            
-            .card-area {
-                min-height: 400px;
-            }
-            
-            .victory-title {
-                font-size: 28px;
-            }
         }
     </style>
 </head>
@@ -218,7 +179,7 @@
         <div class="victory-modal" id="victoryModal">
             <div class="modal-content">
                 <h2 class="victory-title">恭喜通关！</h2>
-                <p class="victory-text">所以你愿意嫁给我吗！</p>
+                <p class="victory-text">你愿意嫁给我吗？</p>
                 <button class="restart-btn" id="restartBtn">正在播放语音，请勿退出</button>
             </div>
         </div>
@@ -255,27 +216,27 @@
             "https://s41.ax1x.com/2025/12/23/pZGZfUO.jpg"
         ];
 
-        // 游戏配置（核心：总卡片数=每层数量×层数，必须是3的倍数）
+        // 游戏配置（区分移动端/桌面端卡片数量）
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const GAME_CONFIG = {
-            totalLayers: 3,         // 卡片堆叠层数
-            cardsPerLayer: 18,      // 每层卡片数量（21是3的倍数，总卡片数=21×1=21）
-            slotCount: 7,           // 收集槽数量
-            matchCount: 3,          // 消除所需相同卡片数
-            victoryAudioUrl: "https://jiaqi621.github.io/sheep-game/qiuhun.m4a",
-            cardSpacing: 10         // 卡片间距（越大越分散）
+            totalLayers: isMobile ? 3 : 3,         // 移动端仅1层
+            cardsPerLayer: isMobile ? 18 : 21,     // 移动端减少卡片数（18张，3的倍数）
+            slotCount: 7,           
+            matchCount: 3,          
+            victoryAudioUrl: "https://jiaqi621.github.io/sheep-game/test.m4a",
+            cardSpacing: isMobile ? 15 : 10        // 移动端增大间距
         };
 
         // 游戏状态
         let gameState = {
-            cards: [],              // 卡片数据
-            slots: [],              // 收集槽数据
-            remainingCards: 0,      // 剩余卡片数
-            isGameOver: false       // 游戏是否结束
+            cards: [],              
+            slots: [],              
+            remainingCards: 0,      
+            isGameOver: false       
         };
 
         // 初始化游戏
         function initGame() {
-            // 重置游戏状态
             gameState = {
                 cards: [],
                 slots: Array(GAME_CONFIG.slotCount).fill(null),
@@ -283,53 +244,48 @@
                 isGameOver: false
             };
 
-            // 隐藏弹窗
             document.getElementById("victoryModal").style.display = "none";
             document.getElementById("failModal").style.display = "none";
 
-            // 生成分散排布的卡片数据
             generateStackedCards();
-            
-            // 渲染卡片
             renderCards();
-            
-            // 绑定事件
             bindEvents();
         }
 
-        // 生成分散排布的卡片数据（核心优化：减少堆叠，增加间距）
+        // 生成分散排布的卡片（适配移动端尺寸）
         function generateStackedCards() {
             const cardArea = document.getElementById("cardArea");
-            const areaWidth = cardArea.clientWidth - 100;  // 卡片区域宽度（留边距）
-            const areaHeight = cardArea.clientHeight - 100; // 卡片区域高度（留边距）
-            const cardWidth = 80;
-            const cardHeight = 105;
-            const spacing = GAME_CONFIG.cardSpacing; // 卡片间距
+            // 实时获取卡片区域尺寸（适配移动端）
+            const areaWidth = cardArea.clientWidth - 40;  // 移动端减少边距
+            const areaHeight = cardArea.clientHeight - 40;
+            // 实时获取卡片尺寸（适配CSS的clamp）
+            const cardWidth = parseFloat(getComputedStyle(document.querySelector('.card')).width);
+            const cardHeight = parseFloat(getComputedStyle(document.querySelector('.card')).height);
+            const spacing = GAME_CONFIG.cardSpacing;
 
             let cardId = 0;
             const allCards = [];
-            const totalCards = GAME_CONFIG.totalLayers * GAME_CONFIG.cardsPerLayer; // 总卡片数
-            const cardTypes = cardImages.length; // 卡片类型数（9种）
+            const totalCards = GAME_CONFIG.totalLayers * GAME_CONFIG.cardsPerLayer;
+            const cardTypes = cardImages.length;
             
-            // 关键计算：每种卡片的基础数量（必须是3的倍数）
+            // 保证数量为3的倍数
             const baseCountPerType = Math.floor(totalCards / cardTypes);
             const countPerType = Math.floor(baseCountPerType / 3) * 3;
             let remainingCards = totalCards - (countPerType * cardTypes);
             
-            // 计算网格行列数（让卡片按网格分布，减少重叠）
+            // 移动端优化网格：按实际卡片尺寸计算行列
             const colCount = Math.floor(areaWidth / (cardWidth + spacing));
             const rowCount = Math.floor(areaHeight / (cardHeight + spacing));
-            // 生成网格坐标池
             const gridPositions = [];
             for (let r = 0; r < rowCount; r++) {
                 for (let c = 0; c < colCount; c++) {
-                    const x = 50 + c * (cardWidth + spacing);
-                    const y = 50 + r * (cardHeight + spacing);
+                    const x = 20 + c * (cardWidth + spacing); // 移动端减少左偏移
+                    const y = 20 + r * (cardHeight + spacing); // 移动端减少上偏移
                     gridPositions.push({x, y});
                 }
             }
 
-            // 生成每种类型的卡片
+            // 生成卡片
             for (let type = 0; type < cardTypes; type++) {
                 let currentTypeCount = countPerType;
                 if (remainingCards > 0) {
@@ -341,21 +297,21 @@
                 for (let layer = 0; layer < GAME_CONFIG.totalLayers; layer++) {
                     const countInLayer = Math.floor(currentTypeCount / GAME_CONFIG.totalLayers);
                     for (let i = 0; i < countInLayer; i++) {
-                        // 优先从网格取坐标，无网格则随机（保证分散）
                         let pos;
+                        // 移动端优先用网格，避免重叠
                         if (gridPositions.length > 0) {
                             const posIndex = Math.floor(Math.random() * gridPositions.length);
                             pos = gridPositions.splice(posIndex, 1)[0];
                         } else {
-                            // 随机坐标也限制偏移范围，减少重叠
+                            // 随机坐标也限制范围
                             pos = {
-                                x: 50 + Math.random() * (areaWidth - cardWidth - 20),
-                                y: 50 + Math.random() * (areaHeight - cardHeight - 20)
+                                x: 20 + Math.random() * (areaWidth - cardWidth - 10),
+                                y: 20 + Math.random() * (areaHeight - cardHeight - 10)
                             };
                         }
                         
-                        // 层叠z-index降低（减少遮挡），同层z-index差异小
-                        const zIndex = layer * 5 + Math.floor(Math.random() * 3);
+                        // 移动端z-index差值更小，几乎无遮挡
+                        const zIndex = layer * 3 + Math.floor(Math.random() * 2);
                         
                         allCards.push({
                             id: `card-${cardId++}`,
@@ -371,7 +327,7 @@
                 }
             }
 
-            // 兜底校验：确保总数是3的倍数
+            // 兜底校验
             const finalTotal = allCards.length;
             if (finalTotal % 3 !== 0) {
                 const needAdd = 3 - (finalTotal % 3);
@@ -380,10 +336,10 @@
                     const pos = gridPositions.length > 0 
                         ? gridPositions[Math.floor(Math.random() * gridPositions.length)]
                         : {
-                            x: 50 + Math.random() * (areaWidth - cardWidth - 20),
-                            y: 50 + Math.random() * (areaHeight - cardHeight - 20)
+                            x: 20 + Math.random() * (areaWidth - cardWidth - 10),
+                            y: 20 + Math.random() * (areaHeight - cardHeight - 10)
                           };
-                    const zIndex = Math.floor(Math.random() * 3);
+                    const zIndex = Math.floor(Math.random() * 2);
                     
                     allCards.push({
                         id: `card-${cardId++}`,
@@ -398,23 +354,15 @@
                 }
             }
 
-            // 打乱卡片顺序
             const shuffledCards = shuffleArray(allCards);
-            
-            // 更新游戏状态
             gameState.cards = shuffledCards;
             gameState.remainingCards = shuffledCards.length;
             
-            // 控制台调试信息
-            console.log("总卡片数：", gameState.remainingCards, "（是否3的倍数：", gameState.remainingCards % 3 === 0, "）");
-            const typeCount = {};
-            shuffledCards.forEach(card => {
-                typeCount[card.type] = (typeCount[card.type] || 0) + 1;
-            });
-            console.log("各类型卡片数量：", typeCount);
+            console.log("设备类型：", isMobile ? "移动端" : "桌面端");
+            console.log("总卡片数：", gameState.remainingCards);
         }
 
-        // 渲染堆叠卡片
+        // 渲染卡片
         function renderCards() {
             const cardArea = document.getElementById("cardArea");
             cardArea.innerHTML = "";
@@ -426,80 +374,63 @@
                     cardElement.dataset.id = card.id;
                     cardElement.dataset.type = card.type;
                     cardElement.style.backgroundImage = `url(${card.image})`;
-                    
-                    // 设置绝对定位和层叠
                     cardElement.style.left = `${card.x}px`;
                     cardElement.style.top = `${card.y}px`;
                     cardElement.style.zIndex = card.zIndex;
-                    
-                    // 移动端适配
-                    if (window.innerWidth <= 768) {
-                        cardElement.style.width = "70px";
-                        cardElement.style.height = "90px";
-                    }
-                    if (window.innerWidth <= 480) {
-                        cardElement.style.width = "60px";
-                        cardElement.style.height = "80px";
-                    }
-                    
                     cardArea.appendChild(cardElement);
                 }
             });
         }
 
-        // 绑定事件
+        // 绑定事件（适配移动端触摸）
         function bindEvents() {
-            // 卡片点击事件
-            document.getElementById("cardArea").addEventListener("click", (e) => {
-                if (gameState.isGameOver) return;
-                
-                const cardElement = e.target.closest(".card");
-                if (!cardElement) return;
-
-                const cardId = cardElement.dataset.id;
-                const cardType = parseInt(cardElement.dataset.type);
-                
-                // 将卡片放入收集槽
-                addToSlot(cardType, cardId);
+            const cardArea = document.getElementById("cardArea");
+            // 同时支持点击和触摸事件
+            cardArea.addEventListener("click", handleCardInteraction);
+            cardArea.addEventListener("touchstart", (e) => {
+                e.preventDefault(); // 防止触摸时滚动
+                handleCardInteraction(e);
             });
 
-            // 重新开始按钮事件
             document.getElementById("restartBtn").addEventListener("click", initGame);
             document.getElementById("failRestartBtn").addEventListener("click", initGame);
 
             // 窗口大小变化时重新渲染
             window.addEventListener("resize", () => {
                 if (!gameState.isGameOver) {
+                    generateStackedCards();
                     renderCards();
                 }
             });
         }
 
+        // 处理卡片交互（点击/触摸）
+        function handleCardInteraction(e) {
+            if (gameState.isGameOver) return;
+            
+            const cardElement = e.target.closest(".card");
+            if (!cardElement) return;
+
+            const cardId = cardElement.dataset.id;
+            const cardType = parseInt(cardElement.dataset.type);
+            
+            addToSlot(cardType, cardId);
+        }
+
         // 将卡片添加到收集槽
         function addToSlot(cardType, cardId) {
-            // 找到第一个空槽位
             const emptySlotIndex = gameState.slots.findIndex(slot => slot === null);
             
-            // 收集槽已满，游戏失败
             if (emptySlotIndex === -1) {
                 gameState.isGameOver = true;
                 showFailModal();
                 return;
             }
 
-            // 更新收集槽
             gameState.slots[emptySlotIndex] = cardType;
-            
-            // 更新UI
             updateSlotUI();
-            
-            // 隐藏点击的卡片
             hideCard(cardId);
-            
-            // 检查是否可以消除
             checkMatch();
-            
-            // 检查游戏是否胜利
             checkVictory();
         }
 
@@ -510,7 +441,6 @@
                 gameState.cards[cardIndex].isVisible = false;
                 gameState.remainingCards--;
                 
-                // 更新UI（渐隐效果）
                 const cardElement = document.querySelector(`.card[data-id="${cardId}"]`);
                 if (cardElement) {
                     cardElement.classList.add("disabled");
@@ -530,9 +460,8 @@
             });
         }
 
-        // 检查是否有可消除的组合
+        // 检查消除
         function checkMatch() {
-            // 统计每种卡片在收集槽中的数量
             const typeCount = {};
             gameState.slots.forEach(type => {
                 if (type !== null) {
@@ -540,17 +469,15 @@
                 }
             });
 
-            // 检查是否有达到消除数量的卡片类型
             for (const [type, count] of Object.entries(typeCount)) {
                 if (count >= GAME_CONFIG.matchCount) {
-                    // 消除对应卡片
                     removeFromSlot(parseInt(type));
                     break;
                 }
             }
         }
 
-        // 从收集槽移除卡片
+        // 移除收集槽卡片
         function removeFromSlot(cardType) {
             let removedCount = 0;
             gameState.slots = gameState.slots.map(slot => {
@@ -560,12 +487,10 @@
                 }
                 return slot;
             });
-
-            // 更新UI
             updateSlotUI();
         }
 
-        // 检查游戏是否胜利
+        // 检查胜利
         function checkVictory() {
             if (gameState.remainingCards === 0 && !gameState.isGameOver) {
                 gameState.isGameOver = true;
@@ -577,8 +502,6 @@
         function showVictoryModal() {
             const modal = document.getElementById("victoryModal");
             modal.style.display = "flex";
-            
-            // 播放胜利语音
             playVictoryAudio();
         }
 
@@ -588,7 +511,7 @@
             modal.style.display = "flex";
         }
 
-        // 播放胜利语音（优化兼容性）
+        // 播放胜利语音
         function playVictoryAudio() {
             if (GAME_CONFIG.victoryAudioUrl) {
                 try {
@@ -611,7 +534,7 @@
             }
         }
 
-        // 数组打乱函数
+        // 数组打乱
         function shuffleArray(array) {
             const newArray = [...array];
             for (let i = newArray.length - 1; i > 0; i--) {
@@ -621,7 +544,7 @@
             return newArray;
         }
 
-        // 页面加载完成后初始化游戏
+        // 页面加载初始化
         window.addEventListener("load", initGame);
     </script>
 </body>
