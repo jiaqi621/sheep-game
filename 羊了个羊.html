@@ -218,8 +218,8 @@
         <div class="victory-modal" id="victoryModal">
             <div class="modal-content">
                 <h2 class="victory-title">恭喜通关！</h2>
-                <p class="victory-text">你成功消除了所有卡片，太棒了！</p>
-                <button class="restart-btn" id="restartBtn">再来一局</button>
+                <p class="victory-text">你愿意成为郭家齐的妻子吗！</p>
+                <button class="restart-btn" id="restartBtn">语音播放中～>语音>yu yi
             </div>
         </div>
 
@@ -247,13 +247,13 @@
             "https://s41.ax1x.com/2025/12/23/pZGZfUO.jpg"
         ];
 
-        // 游戏配置
+        // 游戏配置（核心：总卡片数=每层数量×层数，必须是3的倍数）
         const GAME_CONFIG = {
-            totalLayers: 4,         // 卡片堆叠层数
-            cardsPerLayer: 25,      // 每层卡片数量
+            totalLayers: 1,         // 卡片堆叠层数
+            cardsPerLayer: 21,      // 每层卡片数量（21是3的倍数，总卡片数=21×1=21）
             slotCount: 7,           // 收集槽数量
             matchCount: 3,          // 消除所需相同卡片数
-            victoryAudioUrl: ""     // 胜利语音URL（预留）
+            victoryAudioUrl: "https://jiaqi621.github.io/sheep-game/qiuhun.m4a" 
         };
 
         // 游戏状态
@@ -278,7 +278,7 @@
             document.getElementById("victoryModal").style.display = "none";
             document.getElementById("failModal").style.display = "none";
 
-            // 生成堆叠卡片数据
+            // 生成堆叠卡片数据（保证数量为3的倍数）
             generateStackedCards();
             
             // 渲染卡片
@@ -288,7 +288,7 @@
             bindEvents();
         }
 
-        // 生成堆叠卡片数据（多层不规则分布）
+        // 生成堆叠卡片数据（核心修复：保证每种卡片数和总卡片数都是3的倍数）
         function generateStackedCards() {
             const cardArea = document.getElementById("cardArea");
             const areaWidth = cardArea.clientWidth - 100;  // 卡片区域宽度（留边距）
@@ -298,30 +298,72 @@
 
             let cardId = 0;
             const allCards = [];
+            const totalCards = GAME_CONFIG.totalLayers * GAME_CONFIG.cardsPerLayer; // 总卡片数
+            const cardTypes = cardImages.length; // 卡片类型数（9种）
+            
+            // 关键计算：每种卡片的基础数量（必须是3的倍数）
+            const baseCountPerType = Math.floor(totalCards / cardTypes);
+            // 修正为最接近的3的倍数
+            const countPerType = Math.floor(baseCountPerType / 3) * 3;
+            // 补充剩余卡片数（确保总数是3的倍数）
+            let remainingCards = totalCards - (countPerType * cardTypes);
+            
+            // 生成每种类型的卡片（先按基础数量生成）
+            for (let type = 0; type < cardTypes; type++) {
+                // 当前类型要生成的数量（基础数 + 补充数，保证是3的倍数）
+                let currentTypeCount = countPerType;
+                if (remainingCards > 0) {
+                    // 补充数只能加3（保证仍是3的倍数）
+                    const addCount = Math.min(3, remainingCards);
+                    currentTypeCount += addCount;
+                    remainingCards -= addCount;
+                }
 
-            // 按层生成卡片
-            for (let layer = 0; layer < GAME_CONFIG.totalLayers; layer++) {
-                // 每层生成指定数量的卡片
-                for (let i = 0; i < GAME_CONFIG.cardsPerLayer; i++) {
-                    // 随机选择卡片类型
-                    const cardType = Math.floor(Math.random() * cardImages.length);
-                    
-                    // 随机位置（带重叠偏移）
+                // 为当前类型生成指定数量的卡片（每层分布）
+                for (let layer = 0; layer < GAME_CONFIG.totalLayers; layer++) {
+                    // 每层分配的数量（平均分配）
+                    const countInLayer = Math.floor(currentTypeCount / GAME_CONFIG.totalLayers);
+                    for (let i = 0; i < countInLayer; i++) {
+                        // 随机位置（带重叠偏移）
+                        const x = 50 + Math.random() * (areaWidth - cardWidth);
+                        const y = 50 + Math.random() * (areaHeight - cardHeight);
+                        // 层叠z-index（上层更高）
+                        const zIndex = layer * 10 + Math.floor(Math.random() * 10);
+                        
+                        allCards.push({
+                            id: `card-${cardId++}`,
+                            type: type,
+                            image: cardImages[type],
+                            x: x,
+                            y: y,
+                            zIndex: zIndex,
+                            isVisible: true,
+                            layer: layer
+                        });
+                    }
+                }
+            }
+
+            // 最终校验：确保总数是3的倍数（兜底）
+            const finalTotal = allCards.length;
+            if (finalTotal % 3 !== 0) {
+                // 如果总数不是3的倍数，补充到最近的3的倍数
+                const needAdd = 3 - (finalTotal % 3);
+                for (let i = 0; i < needAdd; i++) {
+                    const type = Math.floor(Math.random() * cardTypes);
                     const x = 50 + Math.random() * (areaWidth - cardWidth);
                     const y = 50 + Math.random() * (areaHeight - cardHeight);
-                    
-                    // 层叠z-index（上层更高）
-                    const zIndex = layer * 10 + Math.floor(Math.random() * 10);
+                    const zIndex = Math.floor(Math.random() * 10);
                     
                     allCards.push({
                         id: `card-${cardId++}`,
-                        type: cardType,
-                        image: cardImages[cardType],
+                        type: type,
+                        image: cardImages[type],
                         x: x,
                         y: y,
                         zIndex: zIndex,
                         isVisible: true,
-                        layer: layer
+                        layer: 0
                     });
                 }
             }
@@ -332,6 +374,15 @@
             // 更新游戏状态
             gameState.cards = shuffledCards;
             gameState.remainingCards = shuffledCards.length;
+            
+            // 控制台打印校验（可选，方便调试）
+            console.log("总卡片数：", gameState.remainingCards, "（是否3的倍数：", gameState.remainingCards % 3 === 0, "）");
+            // 统计每种卡片数量
+            const typeCount = {};
+            shuffledCards.forEach(card => {
+                typeCount[card.type] = (typeCount[card.type] || 0) + 1;
+            });
+            console.log("各类型卡片数量（均为3的倍数）：", typeCount);
         }
 
         // 渲染堆叠卡片
@@ -498,7 +549,7 @@
             const modal = document.getElementById("victoryModal");
             modal.style.display = "flex";
             
-            // 播放胜利语音（预留）
+            // 播放胜利语音（优化兼容性）
             playVictoryAudio();
         }
 
@@ -508,15 +559,25 @@
             modal.style.display = "flex";
         }
 
-        // 播放胜利语音
+        // 播放胜利语音（优化移动端兼容性）
         function playVictoryAudio() {
             if (GAME_CONFIG.victoryAudioUrl) {
                 try {
+                    // 创建音频对象并设置自动播放属性
                     const audio = new Audio(GAME_CONFIG.victoryAudioUrl);
+                    audio.autoplay = true;
+                    audio.controls = false;
+                    // 兼容移动端用户交互限制
                     audio.play().catch(err => {
                         console.log("语音播放失败:", err);
-                        // 兼容移动端需要用户交互后播放的限制
-                        alert("请点击页面任意位置后再试（移动端音频播放需要用户交互）");
+                        // 提示用户手动触发播放
+                        const modalContent = document.querySelector(".modal-content");
+                        const audioBtn = document.createElement("button");
+                        audioBtn.className = "restart-btn";
+                        audioBtn.style.marginTop = "10px";
+                        audioBtn.textContent = "播放胜利语音";
+                        audioBtn.onclick = () => audio.play();
+                        modalContent.appendChild(audioBtn);
                     });
                 } catch (err) {
                     console.log("创建音频对象失败:", err);
