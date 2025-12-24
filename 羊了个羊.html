@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>郭了个王</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+
+        body {
+            background-color: #f0e6d2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .game-title {
+            text-align: center;
+            font-size: 28px;
+            color: #8b5a2b;
+            margin-bottom: 20px;
+        }
+
+        /* 卡片区域样式 - 相对定位用于堆叠 */
+        .card-area {
+            position: relative;
+            background-color: #d9c8b4;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            min-height: 600px;
+            overflow: hidden;
+        }
+
+        /* 卡片样式 - 绝对定位实现堆叠 */
+        .card {
+            position: absolute;
+            width: 80px;
+            height: 105px;
+            background-color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, z-index 0.2s;
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            user-select: none;
+            z-index: 1;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.25);
+            z-index: 10;
+        }
+
+        .card.disabled {
+            opacity: 0;
+            cursor: not-allowed;
+            pointer-events: none;
+            transition: opacity 0.3s, transform 0.2s;
+        }
+
+        /* 收集槽样式 */
+        .collect-slot {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background-color: #e8d9c3;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .slot {
+            width: 70px;
+            height: 90px;
+            background-color: white;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+            box-shadow: inset 0 0 3px rgba(0,0,0,0.2);
+        }
+
+        /* 胜利弹窗样式 */
+        .victory-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .victory-title {
+            font-size: 36px;
+            color: #8b5a2b;
+            margin-bottom: 20px;
+        }
+
+        .victory-text {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #555;
+        }
+
+        .restart-btn {
+            padding: 12px 30px;
+            background-color: #8b5a2b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .restart-btn:hover {
+            background-color: #6d4421;
+        }
+
+        /* 游戏失败弹窗 */
+        .fail-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            .card {
+                width: 70px;
+                height: 90px;
+            }
+            
+            .slot {
+                width: 60px;
+                height: 80px;
+            }
+            
+            .card-area {
+                min-height: 500px;
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                width: 60px;
+                height: 80px;
+            }
+            
+            .card-area {
+                min-height: 400px;
+            }
+            
+            .victory-title {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">郭了个王</h1>
+        
+        <!-- 收集槽 -->
+        <div class="collect-slot">
+            <div class="slot" id="slot1"></div>
+            <div class="slot" id="slot2"></div>
+            <div class="slot" id="slot3"></div>
+            <div class="slot" id="slot4"></div>
+            <div class="slot" id="slot5"></div>
+            <div class="slot" id="slot6"></div>
+            <div class="slot" id="slot7"></div>
+        </div>
+        
+        <!-- 卡片区域 -->
+        <div class="card-area" id="cardArea"></div>
+        
+        <!-- 胜利弹窗 -->
+        <div class="victory-modal" id="victoryModal">
+            <div class="modal-content">
+                <h2 class="victory-title">恭喜通关！</h2>
+                <p class="victory-text">你成功消除了所有卡片，太棒了！</p>
+                <button class="restart-btn" id="restartBtn">再来一局</button>
+            </div>
+        </div>
+
+        <!-- 失败弹窗 -->
+        <div class="victory-modal" id="failModal">
+            <div class="modal-content">
+                <h2 class="victory-title">游戏失败</h2>
+                <p class="victory-text">收集槽已满，无法继续消除！</p>
+                <button class="restart-btn" id="failRestartBtn">重新开始</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 卡片图案链接列表
+        const cardImages = [
+            "https://s41.ax1x.com/2025/12/23/pZGZOVf.jpg",
+            "https://s41.ax1x.com/2025/12/23/pZGZqqP.jpg",
+            "https://s41.ax1x.com/2025/12/23/pZGZHKI.jpg",
+            "https://s41.ax1x.com/2025/12/23/pZGZTxA.jpg",
+            "https://s41.ax1x.com/2025/12/23/pZGZo2d.jpg",
+            "https://s41.ax1x.com/2025/12/23/pZGZI8H.jpg",
+            "https://s41.ax1x.com/2025/12/23/pZGZ5Pe.jpg",
+            "https://s41.ax1x.com/2025/12/23/pZGZh5D.jpg",
+            "https://s41.ax1x.com/2025/12/23/pZGZfUO.jpg"
+        ];
+
+        // 游戏配置
+        const GAME_CONFIG = {
+            totalLayers: 4,         // 卡片堆叠层数
+            cardsPerLayer: 25,      // 每层卡片数量
+            slotCount: 7,           // 收集槽数量
+            matchCount: 3,          // 消除所需相同卡片数
+            victoryAudioUrl: ""     // 胜利语音URL（预留）
+        };
+
+        // 游戏状态
+        let gameState = {
+            cards: [],              // 卡片数据
+            slots: [],              // 收集槽数据
+            remainingCards: 0,      // 剩余卡片数
+            isGameOver: false       // 游戏是否结束
+        };
+
+        // 初始化游戏
+        function initGame() {
+            // 重置游戏状态
+            gameState = {
+                cards: [],
+                slots: Array(GAME_CONFIG.slotCount).fill(null),
+                remainingCards: 0,
+                isGameOver: false
+            };
+
+            // 隐藏弹窗
+            document.getElementById("victoryModal").style.display = "none";
+            document.getElementById("failModal").style.display = "none";
+
+            // 生成堆叠卡片数据
+            generateStackedCards();
+            
+            // 渲染卡片
+            renderCards();
+            
+            // 绑定事件
+            bindEvents();
+        }
+
+        // 生成堆叠卡片数据（多层不规则分布）
+        function generateStackedCards() {
+            const cardArea = document.getElementById("cardArea");
+            const areaWidth = cardArea.clientWidth - 100;  // 卡片区域宽度（留边距）
+            const areaHeight = cardArea.clientHeight - 100; // 卡片区域高度（留边距）
+            const cardWidth = 80;
+            const cardHeight = 105;
+
+            let cardId = 0;
+            const allCards = [];
+
+            // 按层生成卡片
+            for (let layer = 0; layer < GAME_CONFIG.totalLayers; layer++) {
+                // 每层生成指定数量的卡片
+                for (let i = 0; i < GAME_CONFIG.cardsPerLayer; i++) {
+                    // 随机选择卡片类型
+                    const cardType = Math.floor(Math.random() * cardImages.length);
+                    
+                    // 随机位置（带重叠偏移）
+                    const x = 50 + Math.random() * (areaWidth - cardWidth);
+                    const y = 50 + Math.random() * (areaHeight - cardHeight);
+                    
+                    // 层叠z-index（上层更高）
+                    const zIndex = layer * 10 + Math.floor(Math.random() * 10);
+                    
+                    allCards.push({
+                        id: `card-${cardId++}`,
+                        type: cardType,
+                        image: cardImages[cardType],
+                        x: x,
+                        y: y,
+                        zIndex: zIndex,
+                        isVisible: true,
+                        layer: layer
+                    });
+                }
+            }
+
+            // 打乱卡片顺序（保证堆叠随机性）
+            const shuffledCards = shuffleArray(allCards);
+            
+            // 更新游戏状态
+            gameState.cards = shuffledCards;
+            gameState.remainingCards = shuffledCards.length;
+        }
+
+        // 渲染堆叠卡片
+        function renderCards() {
+            const cardArea = document.getElementById("cardArea");
+            cardArea.innerHTML = "";
+
+            gameState.cards.forEach(card => {
+                if (card.isVisible) {
+                    const cardElement = document.createElement("div");
+                    cardElement.className = "card";
+                    cardElement.dataset.id = card.id;
+                    cardElement.dataset.type = card.type;
+                    cardElement.style.backgroundImage = `url(${card.image})`;
+                    
+                    // 设置绝对定位和层叠
+                    cardElement.style.left = `${card.x}px`;
+                    cardElement.style.top = `${card.y}px`;
+                    cardElement.style.zIndex = card.zIndex;
+                    
+                    // 移动端适配
+                    if (window.innerWidth <= 768) {
+                        cardElement.style.width = "70px";
+                        cardElement.style.height = "90px";
+                    }
+                    if (window.innerWidth <= 480) {
+                        cardElement.style.width = "60px";
+                        cardElement.style.height = "80px";
+                    }
+                    
+                    cardArea.appendChild(cardElement);
+                }
+            });
+        }
+
+        // 绑定事件
+        function bindEvents() {
+            // 卡片点击事件
+            document.getElementById("cardArea").addEventListener("click", (e) => {
+                if (gameState.isGameOver) return;
+                
+                const cardElement = e.target.closest(".card");
+                if (!cardElement) return;
+
+                const cardId = cardElement.dataset.id;
+                const cardType = parseInt(cardElement.dataset.type);
+                
+                // 将卡片放入收集槽
+                addToSlot(cardType, cardId);
+            });
+
+            // 重新开始按钮事件
+            document.getElementById("restartBtn").addEventListener("click", initGame);
+            document.getElementById("failRestartBtn").addEventListener("click", initGame);
+
+            // 窗口大小变化时重新渲染
+            window.addEventListener("resize", () => {
+                if (!gameState.isGameOver) {
+                    renderCards();
+                }
+            });
+        }
+
+        // 将卡片添加到收集槽
+        function addToSlot(cardType, cardId) {
+            // 找到第一个空槽位
+            const emptySlotIndex = gameState.slots.findIndex(slot => slot === null);
+            
+            // 收集槽已满，游戏失败
+            if (emptySlotIndex === -1) {
+                gameState.isGameOver = true;
+                showFailModal();
+                return;
+            }
+
+            // 更新收集槽
+            gameState.slots[emptySlotIndex] = cardType;
+            
+            // 更新UI
+            updateSlotUI();
+            
+            // 隐藏点击的卡片
+            hideCard(cardId);
+            
+            // 检查是否可以消除
+            checkMatch();
+            
+            // 检查游戏是否胜利
+            checkVictory();
+        }
+
+        // 隐藏卡片
+        function hideCard(cardId) {
+            const cardIndex = gameState.cards.findIndex(card => card.id === cardId);
+            if (cardIndex !== -1) {
+                gameState.cards[cardIndex].isVisible = false;
+                gameState.remainingCards--;
+                
+                // 更新UI（渐隐效果）
+                const cardElement = document.querySelector(`.card[data-id="${cardId}"]`);
+                if (cardElement) {
+                    cardElement.classList.add("disabled");
+                }
+            }
+        }
+
+        // 更新收集槽UI
+        function updateSlotUI() {
+            gameState.slots.forEach((slotValue, index) => {
+                const slotElement = document.getElementById(`slot${index + 1}`);
+                if (slotValue === null) {
+                    slotElement.style.backgroundImage = "none";
+                } else {
+                    slotElement.style.backgroundImage = `url(${cardImages[slotValue]})`;
+                }
+            });
+        }
+
+        // 检查是否有可消除的组合
+        function checkMatch() {
+            // 统计每种卡片在收集槽中的数量
+            const typeCount = {};
+            gameState.slots.forEach(type => {
+                if (type !== null) {
+                    typeCount[type] = (typeCount[type] || 0) + 1;
+                }
+            });
+
+            // 检查是否有达到消除数量的卡片类型
+            for (const [type, count] of Object.entries(typeCount)) {
+                if (count >= GAME_CONFIG.matchCount) {
+                    // 消除对应卡片
+                    removeFromSlot(parseInt(type));
+                    break;
+                }
+            }
+        }
+
+        // 从收集槽移除卡片
+        function removeFromSlot(cardType) {
+            let removedCount = 0;
+            gameState.slots = gameState.slots.map(slot => {
+                if (slot === cardType && removedCount < GAME_CONFIG.matchCount) {
+                    removedCount++;
+                    return null;
+                }
+                return slot;
+            });
+
+            // 更新UI
+            updateSlotUI();
+        }
+
+        // 检查游戏是否胜利
+        function checkVictory() {
+            if (gameState.remainingCards === 0 && !gameState.isGameOver) {
+                gameState.isGameOver = true;
+                showVictoryModal();
+            }
+        }
+
+        // 显示胜利弹窗
+        function showVictoryModal() {
+            const modal = document.getElementById("victoryModal");
+            modal.style.display = "flex";
+            
+            // 播放胜利语音（预留）
+            playVictoryAudio();
+        }
+
+        // 显示失败弹窗
+        function showFailModal() {
+            const modal = document.getElementById("failModal");
+            modal.style.display = "flex";
+        }
+
+        // 播放胜利语音
+        function playVictoryAudio() {
+            if (GAME_CONFIG.victoryAudioUrl) {
+                try {
+                    const audio = new Audio(GAME_CONFIG.victoryAudioUrl);
+                    audio.play().catch(err => {
+                        console.log("语音播放失败:", err);
+                        // 兼容移动端需要用户交互后播放的限制
+                        alert("请点击页面任意位置后再试（移动端音频播放需要用户交互）");
+                    });
+                } catch (err) {
+                    console.log("创建音频对象失败:", err);
+                }
+            }
+        }
+
+        // 数组打乱函数
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // 页面加载完成后初始化游戏
+        window.addEventListener("load", initGame);
+    </script>
+</body>
+</html>
