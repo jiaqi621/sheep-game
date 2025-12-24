@@ -162,6 +162,24 @@
             z-index: 1000;
         }
 
+        /* 背景音乐提示按钮 */
+        .bgm-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #8b5a2b;
+            color: white;
+            border: none;
+            cursor: pointer;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* 响应式适配 */
         @media (max-width: 768px) {
             .card {
@@ -233,6 +251,9 @@
         </div>
     </div>
 
+    <!-- 背景音乐控制按钮 -->
+    <button class="bgm-btn" id="bgmBtn">🎵</button>
+
     <script>
         // 卡片图案链接列表
         const cardImages = [
@@ -258,11 +279,12 @@
         // 游戏配置（核心：总卡片数=每层数量×层数，必须是3的倍数）
         const GAME_CONFIG = {
             totalLayers: 3,         // 卡片堆叠层数
-            cardsPerLayer: 21,      // 每层卡片数量（21是3的倍数，总卡片数=21×1=21）
+            cardsPerLayer: 21,      // 每层卡片数量
             slotCount: 7,           // 收集槽数量
             matchCount: 3,          // 消除所需相同卡片数
             victoryAudioUrl: "https://jiaqi621.github.io/sheep-game/qiuhun.m4a",
-            cardSpacing: 5         // 卡片间距（越大越分散）
+            bgmAudioUrl: "https://jiaqi621.github.io/sheep-game/music.mp3", // 背景音乐URL
+            cardSpacing: 5         // 卡片间距
         };
 
         // 游戏状态
@@ -272,6 +294,10 @@
             remainingCards: 0,      // 剩余卡片数
             isGameOver: false       // 游戏是否结束
         };
+
+        // 背景音乐对象
+        let bgmAudio = null;
+        let isBgmPlaying = false;
 
         // 初始化游戏
         function initGame() {
@@ -297,6 +323,63 @@
             bindEvents();
         }
 
+        // 初始化背景音乐
+        function initBgm() {
+            bgmAudio = new Audio(GAME_CONFIG.bgmAudioUrl);
+            bgmAudio.loop = true; // 循环播放
+            bgmAudio.volume = 0.5; // 设置音量
+
+            // 绑定背景音乐控制按钮事件
+            const bgmBtn = document.getElementById("bgmBtn");
+            bgmBtn.addEventListener("click", toggleBgm);
+
+            // 尝试自动播放，失败则等待用户交互
+            playBgm().catch(() => {
+                console.log("自动播放失败，等待用户点击播放");
+                bgmBtn.textContent = "🔊";
+            });
+
+            // 监听页面点击事件，首次点击后尝试播放
+            document.addEventListener("click", () => {
+                if (!isBgmPlaying) {
+                    playBgm().catch(() => {});
+                }
+            }, { once: true });
+        }
+
+        // 播放背景音乐
+        function playBgm() {
+            return new Promise((resolve, reject) => {
+                bgmAudio.play()
+                    .then(() => {
+                        isBgmPlaying = true;
+                        document.getElementById("bgmBtn").textContent = "🔇";
+                        resolve();
+                    })
+                    .catch((err) => {
+                        reject(err);
+                    });
+            });
+        }
+
+        // 暂停背景音乐
+        function pauseBgm() {
+            bgmAudio.pause();
+            isBgmPlaying = false;
+            document.getElementById("bgmBtn").textContent = "🔊";
+        }
+
+        // 切换背景音乐播放状态
+        function toggleBgm() {
+            if (isBgmPlaying) {
+                pauseBgm();
+            } else {
+                playBgm().catch(() => {
+                    alert("播放失败，请检查网络或浏览器设置");
+                });
+            }
+        }
+
         // 生成分散排布的卡片数据（核心优化：减少堆叠，增加间距）
         function generateStackedCards() {
             const cardArea = document.getElementById("cardArea");
@@ -309,7 +392,7 @@
             let cardId = 0;
             const allCards = [];
             const totalCards = GAME_CONFIG.totalLayers * GAME_CONFIG.cardsPerLayer; // 总卡片数
-            const cardTypes = cardImages.length; // 卡片类型数（9种）
+            const cardTypes = cardImages.length; // 卡片类型数
             
             // 关键计算：每种卡片的基础数量（必须是3的倍数）
             const baseCountPerType = Math.floor(totalCards / cardTypes);
@@ -621,8 +704,11 @@
             return newArray;
         }
 
-        // 页面加载完成后初始化游戏
-        window.addEventListener("load", initGame);
+        // 页面加载完成后初始化游戏和背景音乐
+        window.addEventListener("load", () => {
+            initGame();
+            initBgm();
+        });
     </script>
 </body>
 </html>
